@@ -9,6 +9,8 @@ jobs:
   build-dosbox-x-windows-installers:
     name: Build DOSBox-X Windows installers and ceate a release
     runs-on: windows-latest
+    permissions:
+      contents: write
     env:
       GH_TOKEN: ${{ github.token }}
     defaults:
@@ -53,32 +55,16 @@ jobs:
           path: release\windows\dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
       - name: Create release for DOSBox-X Windows installers ${{ env.DOSBOX_X_RELEASE }}
         id: create_release
-        uses: actions/create-release@v1.1.4
+        uses: ncipollo/release-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: dosbox-x-installers-${{ env.DOSBOX_X_RELEASE }}
-          release_name: DOSBox-X installers ${{ env.DOSBOX_X_RELEASE }}
-          draft: false
-          prerelease: false
-      - name: "Upload release asset: Windows installer 32 bit"
-        id: upload-release-asset-32-bit
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release\windows\dosbox-x-win32-${{ env.DOSBOX_X_RELEASE }}-setup.exe
-          asset_name: dosbox-x-win32-${{ env.DOSBOX_X_RELEASE }}-setup.exe
-          asset_content_type: application/x-binary
-      - name: "Upload release asset: Windows installer 64 bit"
-        id: upload-release-asset-64-bit
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release\windows\dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
-          asset_name: dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
-          asset_content_type: application/x-binary
+          name: DOSBox-X installers ${{ env.DOSBOX_X_RELEASE }}
+          tag: dosbox-x-installers-${{ env.DOSBOX_X_RELEASE }}
+          allowUpdates: true
+          omitBody: true
+          removeArtifacts: true
+          artifacts: |
+            release\windows\dosbox-x-win32-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+            release\windows\dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
 
