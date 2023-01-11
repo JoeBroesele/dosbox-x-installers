@@ -1,0 +1,84 @@
+name: Build DOSBox-X Windows installers and ceate a release
+
+on:
+#  push:
+#    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-dosbox-x-windows-installers:
+    name: Build DOSBox-X Windows installers and ceate a release
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: joncampbell123/dosbox-x
+          path: .
+      - name: Get DOSBox-X Windows builds
+        shell: bash
+        run: |
+          DOSBOX_X_RELEASE=`gh release --repo joncampbell123/dosbox-x list -L1 | awk '{print $3}' | sed -e "s/-/./g"`
+          echo "DOSBOX_X_RELEASE=$DOSBOX_X_RELEASE" >> $GITHUB_ENV
+          RELEASE_DIR="release\windows"
+          mkdir -p $RELEASE_DIR
+          cd $RELEASE_DIR
+          gh release --repo joncampbell123/dosbox-x download -p 'dosbox-x-mingw-win*.zip' -p 'dosbox-x-vsbuild-*.zip'
+          # Rename the files so that the date in the file name matches the release date.
+          DOSBOX_X_RELEASE_COMPACT=`echo ${DOSBOX_X_RELEASE} | sed -e "s/\.//g"`
+          for file in `ls dosbox-x-*.zip`; do
+            filename_ok=`echo $file | sed -e "s/-[0-9]\{8\}/-$DOSBOX_X_RELEASE_COMPACT/"`
+            if [ $file != $filename_ok ]; then
+              mv $file $filename_ok
+            fi
+          done
+      - name: Build DOSBox-X Windows installers
+        shell: pwsh
+        run: |
+          $INSTALLER_DATE = echo ${{ env.DOSBOX_X_RELEASE }} | % { $_ -replace '\.', '' }
+          .\build_windows_installer.bat $INSTALLER_DATE
+      - name: Upload DOSBox-X Windows 32 bit installer
+        uses: actions/upload-artifact@v3
+        with:
+          name: dosbox-x-win32-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+          path: release\windows\dosbox-x-win32-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+      - name: Upload DOSBox-X Windows 64 bit installer
+        uses: actions/upload-artifact@v3
+        with:
+          name: dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+          path: release\windows\dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+      - name: Create release for DOSBox-X Windows installers ${{ env.DOSBOX_X_RELEASE }}
+        id: create_release
+        uses: actions/create-release@v1.1.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: dosbox-x-installers-${{ env.DOSBOX_X_RELEASE }}
+          release_name: DOSBox-X installers ${{ env.DOSBOX_X_RELEASE }}
+          draft: false
+          prerelease: false
+      - name: "Upload release asset: Windows installer 32 bit"
+        id: upload-release-asset-32-bit
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release\windows\dosbox-x-win32-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+          asset_name: dosbox-x-win32-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+          asset_content_type: application/x-binary
+      - name: "Upload release asset: Windows installer 64 bit"
+        id: upload-release-asset-64-bit
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release\windows\dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+          asset_name: dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+          asset_content_type: application/x-binary
+
