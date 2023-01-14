@@ -24,9 +24,9 @@ jobs:
       - name: Get DOSBox-X Windows builds
         shell: bash
         run: |
-          DOSBOX_X_RELEASE=`gh release --repo joncampbell123/dosbox-x list -L1 | awk '{print $3}' | sed -e "s/-/./g"`
+          DOSBOX_X_RELEASE=`gh release --repo joncampbell123/dosbox-x list -L1 | grep -o "....-..-.." | head -n 1 | sed -e "s/-/./g"`
           echo "DOSBOX_X_RELEASE=$DOSBOX_X_RELEASE" >> $GITHUB_ENV
-          RELEASE_DIR="release\windows"
+          RELEASE_DIR="release/windows"
           mkdir -p $RELEASE_DIR
           cd $RELEASE_DIR
           gh release --repo joncampbell123/dosbox-x download -p 'dosbox-x-mingw-win*.zip' -p 'dosbox-x-vsbuild-*.zip'
@@ -38,6 +38,11 @@ jobs:
               mv $file $filename_ok
             fi
           done
+      - name: Update installer configuration
+        shell: bash
+        run: |
+          APP_VERSION=${{ env.DOSBOX_X_RELEASE }}
+          sed -i "s/^#define MyAppVersion.*/#define MyAppVersion \"$APP_VERSION\"/" contrib/windows/installer/DOSBox-X-setup.iss
       - name: Build DOSBox-X Windows installers
         shell: pwsh
         run: |
@@ -47,12 +52,12 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: dosbox-x-win32-${{ env.DOSBOX_X_RELEASE }}-setup.exe
-          path: release\windows\dosbox-x-win32-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+          path: release/windows/dosbox-x-win32-${{ env.DOSBOX_X_RELEASE }}-setup.exe
       - name: Upload DOSBox-X Windows 64 bit installer
         uses: actions/upload-artifact@v3
         with:
           name: dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
-          path: release\windows\dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
+          path: release/windows/dosbox-x-win64-${{ env.DOSBOX_X_RELEASE }}-setup.exe
       - name: Create release for DOSBox-X Windows installers ${{ env.DOSBOX_X_RELEASE }}
         id: create_release
         uses: ncipollo/release-action@v1
